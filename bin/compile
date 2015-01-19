@@ -34,6 +34,11 @@ function package_download() {
   curl $package -s -o - | tar xzf - -C $location
 }
 
+PROFILE_SCRIPT="$BUILD_DIR/.profile.d/imagemagick.sh"
+echo "BUILD_DIR      : ${BUILD_DIR}" | indent
+echo "CACHE_DIR      : ${CACHE_DIR}" | indent
+echo "PROFILE_SCRIPT : ${PROFILE_SCRIPT}" | indent
+
 # we need this directory, it's our destination
 lib_path=$BUILD_DIR/vendor/imagemagick/lib/
 mkdir -p $lib_path
@@ -67,5 +72,5 @@ echo "Installation completed" | indent
 
 echo "Building runtime environment for imagemagick" | arrow
 mkdir -p $BUILD_DIR/.profile.d
-echo "export PATH=\"\$HOME/bin:\$PATH\"" > $BUILD_DIR/.profile.d/imagemagick.sh
-echo "export LD_RUN_PATH=\"$lib_path:\$LD_RUN_PATH\"" > $BUILD_DIR/.profile.d/imagemagick.sh
+echo "export PATH=\"\$HOME/bin:\$PATH\"" > $PROFILE_SCRIPT
+echo "export LD_RUN_PATH=\"$lib_path:\$LD_RUN_PATH\"" > $PROFILE_SCRIPT
