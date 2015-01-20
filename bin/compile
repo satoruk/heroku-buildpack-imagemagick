@@ -1,76 +1,43 @@
 #! /bin/bash
 
-set -e
-
-source `dirname $0`/../configs.sh
+set -o errexit    # always exit on error
+set -o errtrace   # trap errors in functions as well
+set -o pipefail   # don't ignore exit codes when piping output
+set -o posix      # more strict failures in subshells
 
 # parse and derive params
-BUILD_DIR=$1
-CACHE_DIR=$2
-LP_DIR=`cd $(dirname $0); cd ..; pwd`
+build_dir=$1
+cache_dir=$2
+pkg_name=imagemagick
+heroku_dir=$build_dir/.heroku
+deploy_dir=$heroku_dir/$pkg_name
+profile_dir="$build_dir/.profile.d"
+bp_dir=$(cd $(dirname $0); cd ..; pwd)
 
-indent() {
-  sed -u 's/^/       /'
-}
+# Load dependencies
+source $bp_dir/configs.sh
+source $bp_dir/lib/func.sh
 
-arrow() {
-  sed -u 's/^/-----> /'
-}
+if [ -n "${IMAGEMAGICK_PACKAGE_URL}" ]; then
+  package_url="${IMAGEMAGICK_PACKAGE_URL}"
+fi
 
-function mktmpdir() {
-  dir=$(mktemp -t imagemagick-$1-XXXX)
-  rm -rf $dir
-  mkdir -p $dir
-  echo $dir
-}
+echo "Initialize ImageMagick buildpack" | arrow
+echo "BUILD_DIR   : ${build_dir}" | indent
+echo "CACHE_DIR   : ${cache_dir}" | indent
+echo "profile_dir : ${profile_dir}" | indent
 
-function package_download() {
-  local remote location
-  remote="$1"
-  location="$2"
-
-  mkdir -p $location
-  package="http://s3.amazonaws.com/${S3_BUCKET}/${remote}"
-  curl $package -s -o - | tar xzf - -C $location
-}
-
-PROFILE_SCRIPT="$BUILD_DIR/.profile.d/imagemagick.sh"
-echo "BUILD_DIR      : ${BUILD_DIR}" | indent
-echo "CACHE_DIR      : ${CACHE_DIR}" | indent
-echo "PROFILE_SCRIPT : ${PROFILE_SCRIPT}" | indent
-
-# we need this directory, it's our destination
-lib_path=$BUILD_DIR/vendor/imagemagick/lib/
-mkdir -p $lib_path
-
-echo "Installing libpng $LIBPNG_VERSION" | arrow
-
-# vendor directories
-VENDORED_LIBPNG="$(mktmpdir libpng)"
-package_download "${REMOTE_PATH}" "${VENDORED_LIBPNG}"
-
+echo "Installing ${package_url##*/}" | arrow
+echo "${package_url}" | indent
+#tmp_dir=$(tgz "${package_url}")
+tmp_dir=$(tgz_download "${package_url}")
+#echo "${tmp_dir}" | indent
 echo "Download completed" | indent
 
-cp -R $VENDORED_LIBPNG/lib/* $lib_path
-
-echo "Installation completed" | indent
-
-echo "Installing imagemagick $IMAGE_MAGICK_VERSION" | arrow
-
-# vendor directories
-VENDORED_IMAGEMAGICK="$(mktmpdir imagemagick)"
-package_download "${REMOTE_PATH}" "${VENDORED_IMAGEMAGICK}"
-
-echo "Download completed" | indent
-
-mkdir -p "$BUILD_DIR/bin/"
-cp $VENDORED_IMAGEMAGICK/bin/* "$BUILD_DIR/bin/"
-
-cp -R $VENDORED_IMAGEMAGICK/lib/* $lib_path
-
+mkdir -p "${heroku_dir}"
+mv "${tmp_dir}" "${deploy_dir}"
 echo "Installation completed" | indent
 
 echo "Building runtime environment for imagemagick" | arrow
-mkdir -p $BUILD_DIR/.profile.d
-echo "export PATH=\"\$HOME/bin:\$PATH\"" > $PROFILE_SCRIPT
-echo "export LD_RUN_PATH=\"$lib_path:\$LD_RUN_PATH\"" > $PROFILE_SCRIPT
+mkdir -p "${profile_dir}"
+cat "${bp_dir}/lib/profile.sh" > "${profile_dir}/${pkg_name}.sh"
