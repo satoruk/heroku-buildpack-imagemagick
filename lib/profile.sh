@@ -2,7 +2,7 @@
 
 base_dir="/app/.heroku/imagemagick"
 
-export PATH="${PATH}:${base_dir}/bin"
+export PATH="${base_dir}/bin:${PATH}"
 
 pkg_config_path="${base_dir}/lib/pkgconfig"
 if [ -n "${PKG_CONFIG_PATH}" ]; then
