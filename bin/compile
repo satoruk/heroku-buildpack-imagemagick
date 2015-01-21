@@ -34,10 +34,20 @@ tmp_dir=$(tgz_download "${package_url}")
 #echo "${tmp_dir}" | indent
 echo "Download completed" | indent
 
-mkdir -p "${heroku_dir}"
-mv "${tmp_dir}" "${deploy_dir}"
+mkdir -p "${deploy_dir}"
+cd "${tmp_dir}"
+./configure --with-jpeg=yes --with-magick-plus-plus=yes  --with-png=yes --with-rsvg=yes --prefix="${deploy_dir}"
+make
+make install
 echo "Installation completed" | indent
 
 echo "Building runtime environment for imagemagick" | arrow
 mkdir -p "${profile_dir}"
 cat "${bp_dir}/lib/profile.sh" > "${profile_dir}/${pkg_name}.sh"
+
+if [ -n "${PKG_CONFIG_PATH}" ]; then
+  export PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${deploy_dir}/lib/pkgconfig
+else
+  export PKG_CONFIG_PATH=${deploy_dir}/lib/pkgconfig
+fi
+
