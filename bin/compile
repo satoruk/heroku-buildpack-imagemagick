@@ -35,7 +35,11 @@ tmp_dir=$(tgz_download "${package_url}")
 echo "Download completed" | indent
 
 mkdir -p "${deploy_dir}"
+echo "Installation completed" | indent
 cd "${tmp_dir}"
+cd ImageMagick*
+pwd
+ls -al
 ./configure --with-jpeg=yes --with-magick-plus-plus=yes  --with-png=yes --with-rsvg=yes --prefix="${deploy_dir}"
 make
 make install
